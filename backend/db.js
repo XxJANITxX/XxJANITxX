@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
 const main = async () => {
-    await mongoose.connect("mongodb://localhost:27017");
-    console.log("We are connected");
+    await mongoose.connect("mongodb://127.0.0.1:27017/Project_iNotebook_Database");
+    console.log("We are connected to MongoDB successfully");
 }
 main().catch(err => {
     console.log(err);
