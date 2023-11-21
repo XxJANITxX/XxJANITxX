@@ -68,8 +68,66 @@ router.post('/createuser', [
     } catch (error) {
 
         // Handling error
-        console.log("Some error occured");
-        res.status(500).send("Some error occured" + "\n"+ error);
+        console.log("Some error occured" + "\n"+ error);
+        res.status(500).send("Internal error occured");
+    }
+
+})
+
+
+
+// Authenticating a user 
+router.post('/login', [
+    body('email', "Enter a valid Email").isEmail(),
+    body('password', "Password must not be empty").exists()
+], async (req, res) => {
+
+    // If error, return bad request
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+        return res.status(400).json({ error: errors.array() });
+    }
+
+    try{
+
+        // Destructuring email and password from request body
+        const {email, password} = req.body;
+
+        // Finding user with same email shown
+        let user = await User.findOne({
+            email: email
+        })
+        
+        // If user not found, responding with incorrect credentials error
+        if(!user){
+            return res.status(400).json({error: "Login with correct credentials"});
+        }
+        
+        // Comparing password got from user object 
+        const passwordCompare = await bcrypt.compare(password, user.password);
+
+        // If password not same, responding with incorrect credentials error 
+        if(!passwordCompare){
+            return res.status(400).json({error: "Login with correct credentials"});
+        }
+
+        // Data object which will send user id as data
+        const data = {
+            user:{
+                id:user.id
+            }
+        }
+        // Authorization token created using jwt
+        const authtoken = jwt.sign(data, JWT_SECRET);
+
+        // Responding with authtoken
+        res.json({authtoken});
+
+    }catch(error){
+        // Iternal server error 
+        console.log("Some error occured", error.message);
+        res.status(500).send("Some error occured");
     }
 
 })
