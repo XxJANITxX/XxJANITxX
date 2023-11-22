@@ -15,8 +15,11 @@ const jwt = require('jsonwebtoken');
 // Creating JWT secret String
 const JWT_SECRET = "thisIstoMyAuthenticatedUser";
 
+// Importing fetchUser middleware
+const fetchuser = require('../middleware/fetchuser')
 
-// Handling request
+
+// ROUTE 1: Createing user using post "http://localhost:5000/api/auth/createuser"
 router.post('/createuser', [
     body('name', "Enter a valid name").isLength({ min: 3 }),
     body('email', "Enter a valid Email").isEmail(),
@@ -55,20 +58,20 @@ router.post('/createuser', [
 
         // Data object which will send user id as data
         const data = {
-            user:{
-                id:user.id
+            user: {
+                id: user.id
             }
         }
         // Authorization token created using jwt
         const authtoken = jwt.sign(data, JWT_SECRET);
 
         // Responding with authtoken
-        res.json({authtoken});
+        res.json({ authtoken });
 
     } catch (error) {
 
         // Handling error
-        console.log("Some error occured" + "\n"+ error);
+        console.log("Some error occured" + "\n" + error);
         res.status(500).send("Internal error occured");
     }
 
@@ -76,7 +79,7 @@ router.post('/createuser', [
 
 
 
-// Authenticating a user 
+// ROUTE 2: Authenticating a user using post "http://localhost:5000/api/auth/login"
 router.post('/login', [
     body('email', "Enter a valid Email").isEmail(),
     body('password', "Password must not be empty").exists()
@@ -89,42 +92,42 @@ router.post('/login', [
         return res.status(400).json({ error: errors.array() });
     }
 
-    try{
+    try {
 
         // Destructuring email and password from request body
-        const {email, password} = req.body;
+        const { email, password } = req.body;
 
         // Finding user with same email shown
         let user = await User.findOne({
             email: email
         })
-        
+
         // If user not found, responding with incorrect credentials error
-        if(!user){
-            return res.status(400).json({error: "Login with correct credentials"});
+        if (!user) {
+            return res.status(400).json({ error: "Login with correct credentials" });
         }
-        
+
         // Comparing password got from user object 
         const passwordCompare = await bcrypt.compare(password, user.password);
 
         // If password not same, responding with incorrect credentials error 
-        if(!passwordCompare){
-            return res.status(400).json({error: "Login with correct credentials"});
+        if (!passwordCompare) {
+            return res.status(400).json({ error: "Login with correct credentials" });
         }
 
         // Data object which will send user id as data
         const data = {
-            user:{
-                id:user.id
+            user: {
+                id: user.id
             }
         }
         // Authorization token created using jwt
         const authtoken = jwt.sign(data, JWT_SECRET);
 
         // Responding with authtoken
-        res.json({authtoken});
+        res.json({ authtoken });
 
-    }catch(error){
+    } catch (error) {
         // Iternal server error 
         console.log("Some error occured", error.message);
         res.status(500).send("Some error occured");
@@ -132,4 +135,26 @@ router.post('/login', [
 
 })
 
+// ROUTE 3: Get logged in user details using post "http://localhost:5000/api/auth/getuser". Login required
+router.post('/getuser', fetchuser, async (req, res) => {
+    try {
+
+        // Getting user Id fetched in middleware
+        let userId =  req.user.id;
+
+        // Finding user by using ID and neglecting password
+        const user = await User.findById(userId).select("-password");
+
+        // Responding with user data
+        res.send(user);
+
+    } catch (error) {
+        console.log(error.message);
+        console.log(error)
+        res.status(500).send("Internal Server Error");
+    }
+})
+
+
+// Exporting router
 module.exports = router;
